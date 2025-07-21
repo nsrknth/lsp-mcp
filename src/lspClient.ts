@@ -317,6 +317,16 @@ export class LSPClient {
             },
             codeAction: {
               dynamicRegistration: true
+            },
+            diagnostic: {
+              dynamicRegistration: false
+            },
+            publishDiagnostics: {
+              relatedInformation: true,
+              versionSupport: false,
+              tagSupport: {},
+              codeDescriptionSupport: true,
+              dataSupport: true
             }
           }
         }
