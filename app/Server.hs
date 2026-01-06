@@ -12,6 +12,7 @@ import Data.Maybe (mapMaybe)
 import Data.Text qualified as T
 import Data.Text.IO as TIO
 import Data.Text.Utf16.Rope qualified as Rope
+import Data.Text.Utf16.Rope.Mixed qualified as RopeMixed
 import Language.LSP.Protocol.Message qualified as LSP
 import Language.LSP.Protocol.Types qualified as LSP
 import Language.LSP.Server (Handlers, LspM, Options (..), ServerDefinition (..))
@@ -181,7 +182,7 @@ handlers =
       getCurWord (LSP.VirtualFile _ _ rope) (LSP.Position l c) = do
           let rp_pos :: Rope.Position
               rp_pos = Rope.Position (fromIntegral l) (fromIntegral c)
-          (before, after) <- Rope.splitAtPosition rp_pos rope
-          let aw = T.takeWhile (not . Char.isSpace) $ Rope.toText after
-          let bw = T.takeWhileEnd (not . Char.isSpace) $ Rope.toText before
+          (before, after) <- RopeMixed.utf16SplitAtPosition rp_pos rope
+          let aw = T.takeWhile (not . Char.isSpace) $ RopeMixed.toText after
+          let bw = T.takeWhileEnd (not . Char.isSpace) $ RopeMixed.toText before
           return $ aw <> bw

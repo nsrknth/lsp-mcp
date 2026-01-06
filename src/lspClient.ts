@@ -46,6 +46,7 @@ export class LSPClient {
   private handleData(data: Buffer): void {
     // Append new data to buffer
     this.buffer += data.toString();
+    debug(`Received ${data.length} bytes, buffer size: ${this.buffer.length}`);
 
     // Implement a safety limit to prevent excessive buffer growth
     const MAX_BUFFER_SIZE = 10 * 1024 * 1024; // 10MB limit
@@ -58,7 +59,10 @@ export class LSPClient {
     while (true) {
       // Look for the standard LSP header format - this captures the entire header including the \r\n\r\n
       const headerMatch = this.buffer.match(/^Content-Length: (\d+)\r\n\r\n/);
-      if (!headerMatch) break;
+      if (!headerMatch) {
+        debug(`No header match found in buffer (${this.buffer.length} bytes)`);
+        break;
+      }
 
       const contentLength = parseInt(headerMatch[1], 10);
       const headerEnd = headerMatch[0].length;
@@ -231,13 +235,14 @@ export class LSPClient {
     }
 
     const promise = new Promise<T>((resolve, reject) => {
-      // Set timeout for request
+      // Set timeout for request - use longer timeout for initialize since HLS takes time to start
+      const timeoutMs = method === 'initialize' ? 120000 : 30000; // 2 min for init, 30s for others
       const timeoutId = setTimeout(() => {
         if (this.responsePromises.has(id)) {
           this.responsePromises.delete(id);
           reject(new Error(`Timeout waiting for response to ${method} request`));
         }
-      }, 10000); // 10 second timeout
+      }, timeoutMs);
 
       // Store promise with cleanup for timeout
       this.responsePromises.set(id, {
@@ -321,13 +326,13 @@ export class LSPClient {
             diagnostic: {
               dynamicRegistration: false
             },
-            publishDiagnostics: {
-              relatedInformation: true,
-              versionSupport: false,
-              tagSupport: {},
-              codeDescriptionSupport: true,
-              dataSupport: true
-            }
+          publishDiagnostics: {
+            relatedInformation: true,
+            versionSupport: false,
+            tagSupport: { valueSet: [1, 2] }, // 1 = Unnecessary, 2 = Deprecated
+            codeDescriptionSupport: true,
+            dataSupport: true
+          }
           }
         }
       });

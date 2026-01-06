@@ -52,13 +52,12 @@ export const log = (level: LoggingLevel, ...args: any[]): void => {
   ).join(' ');
 
   // Format for console output with color coding
-  let consoleMethod = originalConsoleLog; // Use original methods to prevent recursion
+  // IMPORTANT: Always use stderr for logs since MCP uses stdout for JSON-RPC communication
   let consolePrefix = '';
 
   switch(level) {
     case 'debug':
       consolePrefix = '\x1b[90m[DEBUG]\x1b[0m'; // Gray
-      consoleMethod = originalConsoleWarn || originalConsoleLog;
       break;
     case 'info':
       consolePrefix = '\x1b[36m[INFO]\x1b[0m'; // Cyan
@@ -68,27 +67,23 @@ export const log = (level: LoggingLevel, ...args: any[]): void => {
       break;
     case 'warning':
       consolePrefix = '\x1b[33m[WARNING]\x1b[0m'; // Yellow
-      consoleMethod = originalConsoleWarn || originalConsoleLog;
       break;
     case 'error':
       consolePrefix = '\x1b[31m[ERROR]\x1b[0m'; // Red
-      consoleMethod = originalConsoleError;
       break;
     case 'critical':
       consolePrefix = '\x1b[41m\x1b[37m[CRITICAL]\x1b[0m'; // White on red
-      consoleMethod = originalConsoleError;
       break;
     case 'alert':
       consolePrefix = '\x1b[45m\x1b[37m[ALERT]\x1b[0m'; // White on purple
-      consoleMethod = originalConsoleError;
       break;
     case 'emergency':
       consolePrefix = '\x1b[41m\x1b[1m[EMERGENCY]\x1b[0m'; // Bold white on red
-      consoleMethod = originalConsoleError;
       break;
   }
 
-  consoleMethod(`${consolePrefix} ${message}`);
+  // Always log to stderr to avoid corrupting MCP protocol on stdout
+  originalConsoleError(`${consolePrefix} ${message}`);
 
   // Send notification to MCP client if server is available and initialized
   if (serverInstance && typeof serverInstance.notification === 'function') {
@@ -124,8 +119,8 @@ export const setLogLevel = (level: LoggingLevel): void => {
   logLevel = level;
 
   // Always log this message regardless of the new log level
-  // Use notice level to ensure it's visible
-  originalConsoleLog(`\x1b[32m[NOTICE]\x1b[0m Log level changed from ${oldLevel} to ${level}`);
+  // Use stderr to avoid corrupting MCP protocol on stdout
+  originalConsoleError(`\x1b[32m[NOTICE]\x1b[0m Log level changed from ${oldLevel} to ${level}`);
 
   // Also log through standard channels
   log('notice', `Log level set to: ${level}`);
